@@ -17,13 +17,13 @@ function WidgetCard({ label, href, value, detail }: WidgetCardProps) {
   return (
     <Link
       href={href}
-      className="h-full border p-5 flex flex-col justify-between transition-all duration-300 bg-white border-[#e6e6e6] hover:bg-[#f7f7f7] hover:border-[#d0d0d0] dark:bg-[#0c0c0c] dark:border-[#1d1d1d] dark:hover:bg-[#0f0f0f] dark:hover:border-[#222222] cursor-pointer group min-h-[110px]"
+      className="group flex h-full min-h-[124px] flex-col justify-between rounded-lg border border-border bg-card p-5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
       <div className="mt-3">
-        <span className="text-xl font-medium">{value}</span>
+        <span className="text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
         {detail ? (
-          <span className="text-xs text-muted-foreground ml-2">{detail}</span>
+          <span className="ml-2 text-xs text-muted-foreground">{detail}</span>
         ) : null}
       </div>
     </Link>
@@ -102,7 +102,7 @@ export function WidgetCards() {
     data.inboxPending.count === 0 ? "All caught up" : "To review";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <WidgetCard
         label="Cash Balance"
         href="/reports?scrollTo=cash-balance"

@@ -44,13 +44,13 @@ export default async function Layout({
 
   return (
     <HydrateClient>
-      <div className="relative">
+      <div className="relative min-h-screen bg-background">
         <Sidebar />
 
-        <div className="md:ml-[70px] pb-4">
+        <div className="md:ml-[70px] pb-6">
           <AppSunsetBanner />
           <Header />
-          <div className="px-4 md:px-8">{children}</div>
+          <main className="mx-auto w-full max-w-[1680px] px-4 md:px-8">{children}</main>
         </div>
 
         <ExportStatus />

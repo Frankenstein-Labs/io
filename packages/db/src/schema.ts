@@ -2,6 +2,7 @@ import { relations, type SQL, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   customType,
   date,
   foreignKey,
@@ -3848,6 +3849,104 @@ export const activities = pgTable(
       foreignColumns: [users.id],
       name: "activities_user_id_fkey",
     }).onDelete("set null"),
+  ],
+);
+
+/**
+ * Append-only, compliance-grade audit record. This is intentionally separate
+ * from `activities`, which remains the mutable product-notification feed.
+ */
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    teamId: uuid("team_id").notNull(),
+    actorId: uuid("actor_id"),
+    actorType: text("actor_type").notNull(),
+    action: text().notNull(),
+    objectType: text("object_type").notNull(),
+    objectId: text("object_id").notNull(),
+    oldValue: jsonb("old_value"),
+    newValue: jsonb("new_value"),
+    metadata: jsonb().notNull().default({}),
+    correlationId: uuid("correlation_id").notNull(),
+    causationId: uuid("causation_id"),
+    requestId: text("request_id"),
+    source: text().notNull(),
+    result: text().notNull(),
+    reason: text(),
+    previousHash: text("previous_hash"),
+    eventHash: text("event_hash"),
+    signature: text(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("audit_events_team_created_at_idx").on(table.teamId, table.createdAt),
+    index("audit_events_correlation_id_idx").on(table.correlationId),
+    index("audit_events_object_idx").on(
+      table.teamId,
+      table.objectType,
+      table.objectId,
+    ),
+    foreignKey({
+      columns: [table.teamId],
+      foreignColumns: [teams.id],
+      name: "audit_events_team_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.actorId],
+      foreignColumns: [users.id],
+      name: "audit_events_actor_id_fkey",
+    }).onDelete("set null"),
+  ],
+);
+
+/** Transactional delivery queue. A producer inserts this in its domain DB transaction. */
+export const outboxEvents = pgTable(
+  "outbox_events",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    teamId: uuid("team_id").notNull(),
+    eventType: text("event_type").notNull(),
+    aggregateType: text("aggregate_type").notNull(),
+    aggregateId: text("aggregate_id").notNull(),
+    payload: jsonb().notNull(),
+    correlationId: uuid("correlation_id").notNull(),
+    causationId: uuid("causation_id"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    status: text().default("pending").notNull(),
+    attempts: integer().default(0).notNull(),
+    availableAt: timestamp("available_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "outbox_events_status_check",
+      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed')`,
+    ),
+    check("outbox_events_attempts_check", sql`${table.attempts} >= 0`),
+    uniqueIndex("outbox_events_team_idempotency_key_idx").on(
+      table.teamId,
+      table.idempotencyKey,
+    ),
+    index("outbox_events_pending_idx").on(
+      table.status,
+      table.availableAt,
+    ),
+    index("outbox_events_team_created_at_idx").on(table.teamId, table.createdAt),
+    foreignKey({
+      columns: [table.teamId],
+      foreignColumns: [teams.id],
+      name: "outbox_events_team_id_fkey",
+    }).onDelete("restrict"),
   ],
 );
 

@@ -16,17 +16,18 @@ export function MobileMenu() {
           variant="outline"
           size="icon"
           onClick={() => setOpen(true)}
-          className="rounded-full w-8 h-8 items-center relative flex md:hidden"
+          aria-label="Open navigation menu"
+          className="flex size-9 items-center rounded-md md:hidden"
         >
           <Icons.Menu size={16} />
         </Button>
       </div>
-      <SheetContent side="left" className="border-none rounded-none -ml-4">
-        <div className="ml-2 mb-8">
+      <SheetContent side="left" className="w-[300px] border-r border-border bg-card p-5 sm:max-w-[300px]">
+        <div className="mb-8">
           <Icons.LogoSmall />
         </div>
 
-        <div className="-ml-2">
+        <div className="-mx-2">
           <MainMenu onSelect={() => setOpen(false)} isExpanded={true} />
         </div>
       </SheetContent>

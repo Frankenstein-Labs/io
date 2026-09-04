@@ -29,10 +29,10 @@ const CHAT_ACTIONS = [
 ] as const;
 
 const buttonClassName =
-  "flex items-center gap-1.5 border bg-white border-[#e6e6e6] hover:bg-[#f7f7f7] hover:border-[#d0d0d0] dark:border-[#1d1d1d] dark:bg-[#0c0c0c] dark:hover:bg-[#0f0f0f] dark:hover:border-[#222222] px-3 py-1.5 text-xs text-muted-foreground/60 hover:text-foreground transition-all duration-300 cursor-pointer group";
+  "group flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground shadow-sm transition-colors duration-150 hover:border-primary/25 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const iconClassName =
-  "text-muted-foreground/40 group-hover:text-foreground transition-colors duration-300";
+  "text-muted-foreground group-hover:text-foreground transition-colors duration-150";
 
 export function QuickActions({ onChatOpen }: { onChatOpen: () => void }) {
   const { sendMessage, setMessages, setChatTitle } = useChatState();
@@ -48,7 +48,7 @@ export function QuickActions({ onChatOpen }: { onChatOpen: () => void }) {
   };
 
   return (
-    <div className="flex items-center justify-center gap-3 pt-2 pb-12 w-full flex-wrap">
+    <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-3 pb-12">
       {CHAT_ACTIONS.map(({ label, icon: Icon, message }) => (
         <button
           key={label}

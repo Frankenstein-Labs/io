@@ -7,7 +7,7 @@ const Table = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <table
     ref={ref}
-    className={cn("w-full caption-bottom text-sm", className)}
+    className={cn("w-full caption-bottom text-sm tabular-nums", className)}
     {...props}
   />
 ));
@@ -19,7 +19,7 @@ const TableHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("[&_tr]:border-b border", className)}
+    className={cn("border-b bg-muted/35 [&_tr]:border-b", className)}
     {...props}
   />
 ));
@@ -31,7 +31,7 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0 border", className)}
+    className={cn("border [&_tr:last-child]:border-0", className)}
     {...props}
   />
 ));
@@ -53,7 +53,7 @@ const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
 >(({ className, ...props }, ref) => (
-  <tr ref={ref} className={cn("border-b", className)} {...props} />
+  <tr ref={ref} className={cn("border-b transition-colors hover:bg-muted/35", className)} {...props} />
 ));
 TableRow.displayName = "TableRow";
 
@@ -64,7 +64,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle text-[#666666] font-medium [&:has([role=checkbox])]:pr-0 border-r last:border-r-0 [&:nth-last-child(2)]:border-r-0 w-auto",
+      "h-11 border-r px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground last:border-r-0 [&:has([role=checkbox])]:pr-0 [&:nth-last-child(2)]:border-r-0",
       className,
     )}
     {...props}
@@ -79,7 +79,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "px-4 py-2 align-middle overflow-hidden [&:has([role=checkbox])]:pr-0 border-r last:border-r-0 [&:nth-last-child(2)]:border-r-0",
+      "overflow-hidden border-r px-4 py-3 align-middle last:border-r-0 [&:has([role=checkbox])]:pr-0 [&:nth-last-child(2)]:border-r-0",
       className,
     )}
     {...props}
