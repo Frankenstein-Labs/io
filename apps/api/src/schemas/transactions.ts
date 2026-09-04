@@ -841,6 +841,7 @@ export const searchTransactionMatchSchema = z.object({
 });
 
 export const createTransactionSchema = z.object({
+  idempotencyKey: z.string().min(1).max(255).optional().describe("Client-generated idempotency key for safe retry"),
   name: z.string().describe("Transaction name or description").openapi({
     description: "Name of the transaction.",
   }),
