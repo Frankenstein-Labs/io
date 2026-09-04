@@ -34,6 +34,7 @@
     "./utils/currency": "./src/utils/currency.ts",
     "./utils/tax": "./src/utils/tax.ts",
     "./utils/blocklist": "./src/utils/blocklist.ts",
+    "./utils/audit-outbox": "./src/utils/audit-outbox.ts",
     "./utils/invoice-recurring": "./src/utils/invoice-recurring.ts"
   },
   "dependencies": {
