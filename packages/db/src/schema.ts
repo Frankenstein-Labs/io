@@ -3923,6 +3923,15 @@ export const outboxEvents = pgTable(
       .notNull(),
     processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
     lastError: text("last_error"),
+    workerId: text("worker_id"),
+    processingStartedAt: timestamp("processing_started_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    nextAttemptAt: timestamp("next_attempt_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
@@ -3930,7 +3939,7 @@ export const outboxEvents = pgTable(
   (table) => [
     check(
       "outbox_events_status_check",
-      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed')`,
+      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed', 'dead_letter')`,
     ),
     check("outbox_events_attempts_check", sql`${table.attempts} >= 0`),
     uniqueIndex("outbox_events_team_idempotency_key_idx").on(
