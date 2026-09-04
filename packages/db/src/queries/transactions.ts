@@ -1846,6 +1846,7 @@ export async function createTransaction(
     bankAccountId,
     categorySlug,
     assignedId,
+    idempotencyKey: _idempotencyKey,
     ...rest
   } = params;
 
