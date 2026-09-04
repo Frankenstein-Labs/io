@@ -53,6 +53,16 @@ export const numericCasted = customType<{
   toDriver: (value: number) => value.toString(),
 });
 
+/** Exact PostgreSQL numeric transport for new financial records; never a JS number. */
+export const numericExact = customType<{
+  data: string;
+  driverData: string;
+}>({
+  dataType: () => "numeric(24,8)",
+  fromDriver: (value) => value,
+  toDriver: (value) => value,
+});
+
 export const accountTypeEnum = pgEnum("account_type", [
   "depository",
   "credit",
@@ -3923,6 +3933,15 @@ export const outboxEvents = pgTable(
       .notNull(),
     processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
     lastError: text("last_error"),
+    workerId: text("worker_id"),
+    processingStartedAt: timestamp("processing_started_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    nextAttemptAt: timestamp("next_attempt_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
@@ -3930,7 +3949,7 @@ export const outboxEvents = pgTable(
   (table) => [
     check(
       "outbox_events_status_check",
-      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed')`,
+      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed', 'dead_letter')`,
     ),
     check("outbox_events_attempts_check", sql`${table.attempts} >= 0`),
     uniqueIndex("outbox_events_team_idempotency_key_idx").on(
@@ -3949,6 +3968,36 @@ export const outboxEvents = pgTable(
     }).onDelete("restrict"),
   ],
 );
+
+export const financialEvents = pgTable("financial_events", {
+  id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), actorId: uuid("actor_id"),
+  commandId: text("command_id").notNull(), correlationId: uuid("correlation_id").notNull(), causationId: uuid("causation_id"),
+  entityType: text("entity_type").notNull(), entityId: text("entity_id").notNull(), eventType: text("event_type").notNull(),
+  amount: numericExact(), currency: text(), source: text().notNull(), auditEventId: uuid("audit_event_id"), evidenceId: uuid("evidence_id"),
+  metadata: jsonb().notNull().default({}), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [uniqueIndex("financial_events_team_command_idx").on(table.teamId, table.commandId), index("financial_events_tenant_entity_idx").on(table.teamId, table.entityType, table.entityId, table.createdAt)]);
+
+export const ledgerAccounts = pgTable("ledger_accounts", {
+  id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), code: text().notNull(), name: text().notNull(),
+  accountType: text("account_type").notNull(), currency: text(), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [uniqueIndex("ledger_accounts_team_code_idx").on(table.teamId, table.code)]);
+
+export const journalEntries = pgTable("journal_entries", {
+  id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), idempotencyKey: text("idempotency_key").notNull(), status: text().notNull().default("draft"),
+  sourceType: text("source_type").notNull(), sourceId: text("source_id").notNull(), actorId: uuid("actor_id"), correlationId: uuid("correlation_id").notNull(), causationId: uuid("causation_id"), financialEventId: uuid("financial_event_id"), postedAt: timestamp("posted_at", { withTimezone: true, mode: "string" }), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [uniqueIndex("journal_entries_team_idempotency_idx").on(table.teamId, table.idempotencyKey), index("journal_entries_tenant_created_idx").on(table.teamId, table.createdAt)]);
+
+export const journalLines = pgTable("journal_lines", {
+  id: uuid().defaultRandom().primaryKey().notNull(), entryId: uuid("entry_id").notNull(), teamId: uuid("team_id").notNull(), accountId: uuid("account_id").notNull(), currency: text().notNull(), debit: numericExact().notNull().default("0"), credit: numericExact().notNull().default("0"), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [index("journal_lines_entry_idx").on(table.entryId)]);
+
+export const evidenceArtifacts = pgTable("evidence_artifacts", {
+  id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), actorId: uuid("actor_id"), entityType: text("entity_type").notNull(), entityId: text("entity_id").notNull(), operationId: text("operation_id"), documentId: uuid("document_id"), version: integer().notNull().default(1), sha256: text().notNull(), mimeType: text("mime_type").notNull(), sizeBytes: bigint("size_bytes", { mode: "bigint" }).notNull(), provenance: text().notNull(), previousArtifactId: uuid("previous_artifact_id"), auditEventId: uuid("audit_event_id"), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [uniqueIndex("evidence_artifacts_team_hash_idx").on(table.teamId, table.sha256), uniqueIndex("evidence_artifacts_version_idx").on(table.teamId, table.entityType, table.entityId, table.version)]);
+
+export const evidenceAccessLogs = pgTable("evidence_access_logs", { id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), evidenceId: uuid("evidence_id").notNull(), actorId: uuid("actor_id"), action: text().notNull(), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull() });
+export const teamRoleAssignments = pgTable("team_role_assignments", { id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), userId: uuid("user_id").notNull(), role: text().notNull(), assignedBy: uuid("assigned_by"), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull() }, (table) => [uniqueIndex("team_role_assignments_unique_idx").on(table.teamId, table.userId, table.role)]);
+export const segregationOfDutiesPolicies = pgTable("segregation_of_duties_policies", { id: uuid().defaultRandom().primaryKey().notNull(), teamId: uuid("team_id").notNull(), actionA: text("action_a").notNull(), actionB: text("action_b").notNull(), enforcement: text().notNull().default("observe"), createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull() }, (table) => [uniqueIndex("sod_policies_unique_idx").on(table.teamId, table.actionA, table.actionB)]);
 
 export const notificationSettings = pgTable(
   "notification_settings",
